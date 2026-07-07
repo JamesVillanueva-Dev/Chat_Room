@@ -80,6 +80,10 @@ label {
   color: #0d1f44;
 }
 
+.bot-message strong {
+  color: #00695c;
+}
+
 .message small {
   color: #777;
   margin-left: 8px;
@@ -98,12 +102,64 @@ label {
   margin-top: 12px;
 }
 
-.form input[type="text"] {
+.input-wrap {
   flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.form input[type="text"] {
+  width: 100%;
   padding: 12px 14px;
   border: 1px solid #ccc;
   border-radius: 8px;
   min-width: 0;
+}
+
+.command-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
+  overflow: hidden;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+  z-index: 5;
+}
+
+.command-menu[hidden] {
+  display: none;
+}
+
+.command-item {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.command-item + .command-item {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.command-item[aria-selected="true"],
+.command-item:hover {
+  background: #eef6ff;
+}
+
+.command-item strong {
+  color: #0d1f44;
+}
+
+.command-item span {
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .form button {
@@ -137,6 +193,11 @@ label {
 
   .form {
     flex-direction: column;
+  }
+
+  .command-item {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 
   .form button {
