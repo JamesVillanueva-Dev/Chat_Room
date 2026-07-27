@@ -114,12 +114,19 @@ const createApp = () => {
     })
   );
 
-  // Caching the client in development just serves stale code after an edit.
+  /**
+   * The client is served with `no-cache`, which does not mean "never cache" —
+   * it means "always revalidate". The browser keeps the file and gets a cheap
+   * 304 when it is unchanged, but it can never serve stale code after an edit
+   * or a deploy. Uploads above keep their long max-age because their filenames
+   * are randomly generated and their contents never change.
+   */
   app.use(
     express.static(config.publicDir, {
       index: 'index.html',
-      maxAge: config.isProduction ? '1h' : 0,
       etag: true,
+      lastModified: true,
+      setHeaders: (res) => res.set('Cache-Control', 'no-cache'),
     })
   );
 

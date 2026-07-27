@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { avatarFor, clear, el, formatRelative } from '../dom.js';
+import { icon } from '../icons.js';
 import { state } from '../state.js';
 import { closeModal, confirmDialog, field, modal, popover, toast } from '../ui.js';
 import { notificationSettings } from '../notifications.js';
@@ -109,9 +110,13 @@ export const openBrowseRooms = ({ onJoined }) => {
           el('div', { class: 'browse-item' }, [
             el('div', { class: 'browse-item-main' }, [
               el('span', { class: 'browse-name' }, [
-                el('span', { class: 'room-glyph', 'aria-hidden': 'true', text: room.visibility === 'private' ? '🔒' : '#' }),
+                el('span', { class: 'room-glyph' }, [
+                  icon(room.visibility === 'private' ? 'lock' : 'hash', { size: 15 }),
+                ]),
                 el('span', { text: room.name }),
-                room.hasPassword ? el('span', { class: 'tag', text: 'password' }) : null,
+                room.hasPassword
+                  ? el('span', { class: 'tag' }, [icon('lock', { size: 11 }), el('span', { text: 'password' })])
+                  : null,
               ]),
               room.topic ? el('span', { class: 'browse-topic', text: room.topic }) : null,
               el('span', {

@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { clear, el, formatBytes } from '../dom.js';
 import { drafts } from '../drafts.js';
+import { icon } from '../icons.js';
 import { state } from '../state.js';
 import { EMOJI_GROUPS, searchEmoji } from '../emoji.js';
 import { popover, toast } from '../ui.js';
@@ -31,12 +32,11 @@ export const createComposer = ({ onSend, onTyping, onCancelReply, onCancelEdit, 
   const attachmentBar = el('div', { class: 'composer-attachment', hidden: true });
   const fileInput = el('input', { type: 'file', class: 'visually-hidden', id: 'composer-file' });
 
-  const sendButton = el('button', {
-    class: 'button button-primary composer-send',
-    type: 'submit',
-    'aria-label': 'Send message',
-    text: 'Send',
-  });
+  const sendButton = el(
+    'button',
+    { class: 'button button-primary composer-send', type: 'submit', 'aria-label': 'Send message' },
+    [icon('send', { size: 16 }), el('span', { class: 'composer-send-label', text: 'Send' })]
+  );
 
   let roomId = null;
   let suggestions = [];
@@ -185,16 +185,22 @@ export const createComposer = ({ onSend, onTyping, onCancelReply, onCancelEdit, 
     attachmentBar.hidden = false;
     attachmentBar.appendChild(
       el('div', { class: 'attachment-chip' }, [
-        el('span', { class: 'attachment-icon', 'aria-hidden': 'true', text: attachment.kind === 'image' ? '🖼' : '📎' }),
+        el('span', { class: 'attachment-icon' }, [
+          icon(attachment.kind === 'image' ? 'image' : 'file', { size: 16 }),
+        ]),
         el('span', { class: 'attachment-name', text: attachment.name }),
         el('span', { class: 'attachment-size', text: formatBytes(attachment.size) }),
-        el('button', {
-          class: 'icon-button',
-          type: 'button',
-          'aria-label': 'Remove attachment',
-          text: '×',
-          onClick: clearAttachment,
-        }),
+        el(
+          'button',
+          {
+            class: 'icon-button',
+            type: 'button',
+            'aria-label': 'Remove attachment',
+            title: 'Remove attachment',
+            onClick: clearAttachment,
+          },
+          [icon('x', { size: 15 })]
+        ),
       ])
     );
   };
@@ -351,30 +357,36 @@ export const createComposer = ({ onSend, onTyping, onCancelReply, onCancelEdit, 
     contextBar,
     attachmentBar,
     el('div', { class: 'composer-row' }, [
-      el('button', {
-        class: 'icon-button composer-tool',
-        type: 'button',
-        title: 'Attach a file',
-        'aria-label': 'Attach a file',
-        text: '📎',
-        onClick: () => fileInput.click(),
-      }),
+      el(
+        'button',
+        {
+          class: 'icon-button composer-tool',
+          type: 'button',
+          title: 'Attach a file',
+          'aria-label': 'Attach a file',
+          onClick: () => fileInput.click(),
+        },
+        [icon('paperclip')]
+      ),
       el('div', { class: 'composer-field' }, [suggestionList, textarea]),
-      el('button', {
-        class: 'icon-button composer-tool',
-        type: 'button',
-        title: 'Insert emoji',
-        'aria-label': 'Insert emoji',
-        text: '☺',
-        onClick: (event) =>
-          openEmojiPicker(event.currentTarget, (emoji) => {
-            const caret = textarea.selectionStart;
-            textarea.value = `${textarea.value.slice(0, caret)}${emoji}${textarea.value.slice(caret)}`;
-            textarea.focus();
-            textarea.setSelectionRange(caret + emoji.length, caret + emoji.length);
-            autosize();
-          }),
-      }),
+      el(
+        'button',
+        {
+          class: 'icon-button composer-tool',
+          type: 'button',
+          title: 'Insert emoji',
+          'aria-label': 'Insert emoji',
+          onClick: (event) =>
+            openEmojiPicker(event.currentTarget, (emoji) => {
+              const caret = textarea.selectionStart;
+              textarea.value = `${textarea.value.slice(0, caret)}${emoji}${textarea.value.slice(caret)}`;
+              textarea.focus();
+              textarea.setSelectionRange(caret + emoji.length, caret + emoji.length);
+              autosize();
+            }),
+        },
+        [icon('smile')]
+      ),
       sendButton,
     ]),
     el('p', { class: 'composer-hint', id: 'composer-hint' }, [

@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { el, clear } from '../dom.js';
+import { icon } from '../icons.js';
 
 /**
  * Sign-in / sign-up screen. Renders into the given host and calls `onSignedIn`
@@ -101,7 +102,7 @@ export const renderAuth = (host, { onSignedIn, inviteCode = null }) => {
     el('div', { class: 'auth-screen' }, [
       el('div', { class: 'auth-card' }, [
         el('div', { class: 'auth-brand' }, [
-          el('span', { class: 'auth-logo', 'aria-hidden': 'true', text: '💬' }),
+          el('span', { class: 'auth-logo' }, [icon('message-circle', { size: 22 })]),
           el('span', { class: 'auth-brand-name', text: 'Chat Room' }),
         ]),
         heading,

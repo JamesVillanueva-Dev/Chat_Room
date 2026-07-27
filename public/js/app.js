@@ -1,5 +1,6 @@
 import { api } from './api.js';
 import { avatarFor, clear, el, $ } from './dom.js';
+import { icon } from './icons.js';
 import { chatSocket } from './socket.js';
 import { drafts } from './drafts.js';
 import { state, findRoom, historyFor, recomputeUnread, roomTitle, subscribe } from './state.js';
@@ -160,7 +161,9 @@ const renderHeader = (room) => {
   clear(headerRefs.title).append(
     isDm
       ? avatarFor(room.partner, { size: 'xs' })
-      : el('span', { class: 'room-glyph', 'aria-hidden': 'true', text: room.visibility === 'private' ? '🔒' : '#' }),
+      : el('span', { class: 'room-glyph' }, [
+          icon(room.visibility === 'private' ? 'lock' : 'hash', { size: 16 }),
+        ]),
     el('span', { text: roomTitle(room) })
   );
 
@@ -170,21 +173,34 @@ const renderHeader = (room) => {
 
   headerRefs.settings.hidden = isDm || !state.canModerate;
   headerRefs.leave.hidden = isDm || room.slug === 'general';
-  headerRefs.pinned.textContent = state.pinned.length > 0 ? `📌 ${state.pinned.length}` : '📌';
-  headerRefs.members.textContent = `👥 ${state.members.length}`;
+
+  // Counts sit beside the icon rather than replacing it.
+  const withCount = (button, iconName, count, label) => {
+    clear(button).append(icon(iconName));
+    if (count > 0) button.appendChild(el('span', { class: 'icon-count', text: String(count) }));
+    button.title = label;
+    button.setAttribute('aria-label', label);
+  };
+
+  withCount(headerRefs.pinned, 'pin', state.pinned.length, `Pinned messages (${state.pinned.length})`);
+  withCount(headerRefs.members, 'users', state.members.length, `Members (${state.members.length})`);
 };
 
 const buildHeader = () => {
   const title = el('h1', { class: 'room-title', id: 'room-title' });
   const topic = el('p', { class: 'room-topic' });
 
-  const iconButton = (label, glyph, onClick) =>
-    el('button', { class: 'icon-button', type: 'button', title: label, 'aria-label': label, text: glyph, onClick });
+  const iconButton = (label, iconName, onClick) =>
+    el(
+      'button',
+      { class: 'icon-button', type: 'button', title: label, 'aria-label': label, onClick },
+      [icon(iconName)]
+    );
 
-  const members = iconButton('Show members', '👥', () => togglePanel('members'));
-  const pinned = iconButton('Show pinned messages', '📌', () => togglePanel('pinned'));
-  const search = iconButton('Search this room', '🔍', () => togglePanel('search'));
-  const settings = iconButton('Room settings', '⚙', () =>
+  const members = iconButton('Show members', 'users', () => togglePanel('members'));
+  const pinned = iconButton('Show pinned messages', 'pin', () => togglePanel('pinned'));
+  const search = iconButton('Search this room', 'search', () => togglePanel('search'));
+  const settings = iconButton('Room settings', 'settings', () =>
     openRoomSettings({
       room: state.room,
       onUpdated: async (updated) => {
@@ -201,7 +217,7 @@ const buildHeader = () => {
       },
     })
   );
-  const leave = iconButton('Leave this room', '🚪', async () => {
+  const leave = iconButton('Leave this room', 'door-exit', async () => {
     try {
       await api.rooms.leave(state.activeRoomId);
       state.history.delete(state.activeRoomId);
@@ -217,14 +233,17 @@ const buildHeader = () => {
   headerRefs = { title, topic, members, pinned, search, settings, leave };
 
   return el('header', { class: 'room-header' }, [
-    el('button', {
-      class: 'icon-button drawer-toggle',
-      type: 'button',
-      'aria-label': 'Show rooms',
-      title: 'Show rooms',
-      text: '☰',
-      onClick: () => document.body.classList.toggle('drawer-open'),
-    }),
+    el(
+      'button',
+      {
+        class: 'icon-button drawer-toggle',
+        type: 'button',
+        'aria-label': 'Show rooms',
+        title: 'Show rooms',
+        onClick: () => document.body.classList.toggle('drawer-open'),
+      },
+      [icon('menu')]
+    ),
     el('div', { class: 'room-heading' }, [title, topic]),
     el('div', { class: 'room-header-actions' }, [search, pinned, members, settings, leave]),
   ]);
@@ -626,7 +645,7 @@ const openQuickSwitcher = () => {
             selectRoom(room.id);
           },
         }, [
-          el('span', { class: 'room-glyph', 'aria-hidden': 'true', text: room.kind === 'dm' ? '@' : '#' }),
+          el('span', { class: 'room-glyph' }, [icon(room.kind === 'dm' ? 'user' : 'hash', { size: 15 })]),
           el('span', { text: roomTitle(room) }),
           room.unreadCount ? el('span', { class: 'badge', text: String(room.unreadCount) }) : null,
         ])
@@ -732,6 +751,7 @@ const mountApp = async () => {
     },
     onToggleTheme: () => {
       const next = theme.cycle();
+      sidebar.renderTheme();
       toast(`Theme: ${next}`, { timeout: 1500 });
     },
     onPresenceChange: async (presence) => {

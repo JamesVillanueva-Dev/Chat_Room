@@ -243,10 +243,19 @@ a {
   width: 100%;
 }
 
+/* Icons are stroked outlines that inherit text colour, so a control only has to
+   set `color` for its icon to follow. */
+.icon {
+  flex: none;
+  display: block;
+  pointer-events: none;
+}
+
 .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   min-width: 32px;
   height: 32px;
   padding: 0 7px;
@@ -258,6 +267,14 @@ a {
   font-size: 15px;
   line-height: 1;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Small count that rides next to an icon, e.g. members and pinned. */
+.icon-count {
+  font-size: 0.74rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .icon-button:hover {
@@ -357,6 +374,9 @@ textarea.field-input {
 }
 
 .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   padding: 1px 7px;
   border-radius: var(--radius-pill);
   background: var(--bg-sunken);
@@ -463,7 +483,7 @@ textarea.field-input {
 }
 
 .boot-logo {
-  font-size: 2.5rem;
+  color: var(--accent);
 }
 
 .auth-card {
@@ -484,7 +504,9 @@ textarea.field-input {
 }
 
 .auth-logo {
-  font-size: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
 }
 
 .auth-title {
@@ -557,6 +579,12 @@ textarea.field-input {
   font-weight: 700;
 }
 
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+}
+
 .sidebar-scroll {
   flex: 1;
   min-height: 0;
@@ -624,11 +652,12 @@ textarea.field-input {
 }
 
 .room-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
   width: 20px;
   color: var(--text-faint);
-  text-align: center;
-  font-weight: 600;
 }
 
 .room-item-body {
@@ -651,8 +680,9 @@ textarea.field-input {
 }
 
 .draft-dot {
+  display: inline-flex;
+  align-items: center;
   color: var(--warning);
-  font-size: 0.75rem;
 }
 
 .room-item-preview {
@@ -993,7 +1023,7 @@ textarea.field-input {
 
 .reply-quote {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
   max-width: 100%;
   margin-bottom: 3px;
@@ -1004,11 +1034,6 @@ textarea.field-input {
   cursor: pointer;
   font-size: 0.8rem;
   text-align: left;
-}
-
-.reply-quote::before {
-  content: "↳";
-  color: var(--text-faint);
 }
 
 .reply-quote-author {
@@ -1117,6 +1142,21 @@ textarea.field-input {
 
 .attachment-file:hover {
   border-color: var(--accent);
+}
+
+.attachment-icon,
+.attachment-download {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-faint);
+}
+
+.attachment-download {
+  margin-left: 4px;
+}
+
+.attachment-file:hover .attachment-download {
+  color: var(--accent);
 }
 
 .attachment-meta {
@@ -1256,6 +1296,9 @@ textarea.field-input {
   position: absolute;
   right: 20px;
   bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 7px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);

@@ -1,4 +1,5 @@
 import { el, clear, append } from './dom.js';
+import { icon } from './icons.js';
 
 // --- theme --------------------------------------------------------------
 
@@ -64,13 +65,11 @@ export const toast = (text, { level = 'info', timeout = 5000 } = {}) => {
   const host = ensureToastHost();
   const node = el('div', { class: `toast toast-${level}` }, [
     el('div', { class: 'toast-text', text }),
-    el('button', {
-      class: 'toast-close',
-      type: 'button',
-      'aria-label': 'Dismiss notification',
-      text: '×',
-      onClick: () => node.remove(),
-    }),
+    el(
+      'button',
+      { class: 'toast-close', type: 'button', 'aria-label': 'Dismiss notification', onClick: () => node.remove() },
+      [icon('x', { size: 15 })]
+    ),
   ]);
 
   host.appendChild(node);
@@ -86,13 +85,11 @@ export const noticeToast = (text, level = 'info') => {
     multiline
       ? el('pre', { class: 'toast-pre', text })
       : el('div', { class: 'toast-text', text }),
-    el('button', {
-      class: 'toast-close',
-      type: 'button',
-      'aria-label': 'Dismiss notification',
-      text: '×',
-      onClick: () => node.remove(),
-    }),
+    el(
+      'button',
+      { class: 'toast-close', type: 'button', 'aria-label': 'Dismiss notification', onClick: () => node.remove() },
+      [icon('x', { size: 15 })]
+    ),
   ]);
 
   host.appendChild(node);
@@ -123,13 +120,11 @@ export const modal = ({ title, body, actions = [], width = 'md', onClose }) => {
     [
       el('header', { class: 'modal-head' }, [
         el('h2', { id: titleId, text: title }),
-        el('button', {
-          class: 'icon-button',
-          type: 'button',
-          'aria-label': 'Close dialog',
-          text: '×',
-          onClick: () => closeModal(),
-        }),
+        el(
+          'button',
+          { class: 'icon-button', type: 'button', 'aria-label': 'Close dialog', title: 'Close', onClick: () => closeModal() },
+          [icon('x')]
+        ),
       ]),
       el('div', { class: 'modal-body' }, [body]),
       actions.length > 0 ? el('footer', { class: 'modal-foot' }, actions) : null,

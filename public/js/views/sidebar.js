@@ -1,6 +1,8 @@
 import { avatarFor, clear, el } from '../dom.js';
 import { drafts } from '../drafts.js';
+import { icon, themeIcon } from '../icons.js';
 import { state, roomTitle } from '../state.js';
+import { theme } from '../ui.js';
 import { toPlainText } from '../markdown.js';
 
 const PRESENCE_LABEL = { online: 'Online', away: 'Away', busy: 'Busy', offline: 'Offline' };
@@ -22,14 +24,12 @@ const roomButton = (room, { onSelect, draftRooms }) => {
   const title = roomTitle(room);
   const hasDraft = draftRooms.has(room.id) && !isActive;
 
-  const icon =
+  const glyph =
     room.kind === 'dm'
       ? avatarFor(room.partner, { size: 'xs' })
-      : el('span', {
-          class: 'room-glyph',
-          'aria-hidden': 'true',
-          text: room.visibility === 'private' ? '🔒' : '#',
-        });
+      : el('span', { class: 'room-glyph' }, [
+          icon(room.visibility === 'private' ? 'lock' : 'hash', { size: 15 }),
+        ]);
 
   const preview = room.lastMessage
     ? `${room.lastMessage.username ? `${room.lastMessage.username}: ` : ''}${toPlainText(room.lastMessage.body)}`
@@ -48,11 +48,13 @@ const roomButton = (room, { onSelect, draftRooms }) => {
         onClick: () => onSelect(room.id),
       },
       [
-        icon,
+        glyph,
         el('span', { class: 'room-item-body' }, [
           el('span', { class: 'room-item-title' }, [
             el('span', { class: 'room-item-name', text: title }),
-            hasDraft ? el('span', { class: 'draft-dot', title: 'Unsent draft', text: '✎' }) : null,
+            hasDraft
+              ? el('span', { class: 'draft-dot', title: 'Unsent draft' }, [icon('pencil', { size: 12 })])
+              : null,
           ]),
           el('span', { class: 'room-item-preview', text: preview }),
         ]),
@@ -62,13 +64,36 @@ const roomButton = (room, { onSelect, draftRooms }) => {
   ]);
 };
 
+const iconButton = (name, label, onClick, extraClass = '') =>
+  el(
+    'button',
+    {
+      class: `icon-button${extraClass ? ` ${extraClass}` : ''}`,
+      type: 'button',
+      title: label,
+      'aria-label': label,
+      onClick,
+    },
+    [icon(name)]
+  );
+
 const sectionHeader = (label, action) =>
   el('div', { class: 'sidebar-section-head' }, [
     el('h2', { class: 'sidebar-section-title', text: label }),
     action,
   ]);
 
-export const createSidebar = ({ onSelectRoom, onBrowse, onCreateRoom, onNewDm, onProfile, onAdmin, onLogout, onToggleTheme, onPresenceChange }) => {
+export const createSidebar = ({
+  onSelectRoom,
+  onBrowse,
+  onCreateRoom,
+  onNewDm,
+  onProfile,
+  onAdmin,
+  onLogout,
+  onToggleTheme,
+  onPresenceChange,
+}) => {
   const roomList = el('ul', { class: 'room-list', role: 'tablist', 'aria-label': 'Rooms' });
   const dmList = el('ul', { class: 'room-list', role: 'tablist', 'aria-label': 'Direct messages' });
   const dmSection = el('div', { class: 'sidebar-section' });
@@ -76,6 +101,14 @@ export const createSidebar = ({ onSelectRoom, onBrowse, onCreateRoom, onNewDm, o
   const userName = el('span', { class: 'me-name' });
   const userStatus = el('span', { class: 'me-status' });
   const avatarSlot = el('span', { class: 'me-avatar' });
+
+  const themeButton = el('button', {
+    class: 'icon-button',
+    type: 'button',
+    title: 'Change theme',
+    'aria-label': 'Change colour theme',
+    onClick: onToggleTheme,
+  });
 
   const presenceSelect = el(
     'select',
@@ -89,30 +122,16 @@ export const createSidebar = ({ onSelectRoom, onBrowse, onCreateRoom, onNewDm, o
       .map(([value, label]) => el('option', { value, text: label }))
   );
 
-  const adminButton = el('button', {
-    class: 'icon-button',
-    type: 'button',
-    title: 'Admin panel',
-    'aria-label': 'Open admin panel',
-    text: '🛡',
-    hidden: true,
-    onClick: onAdmin,
-  });
+  const adminButton = iconButton('shield', 'Open admin panel', onAdmin);
+  adminButton.hidden = true;
 
   const root = el('aside', { class: 'sidebar', 'aria-label': 'Rooms and account' }, [
     el('div', { class: 'sidebar-head' }, [
       el('span', { class: 'brand' }, [
-        el('span', { class: 'brand-mark', 'aria-hidden': 'true', text: '💬' }),
+        el('span', { class: 'brand-mark' }, [icon('message-circle', { size: 20 })]),
         el('span', { text: 'Chat Room' }),
       ]),
-      el('button', {
-        class: 'icon-button',
-        type: 'button',
-        title: 'Toggle theme',
-        'aria-label': 'Toggle colour theme',
-        text: '◐',
-        onClick: onToggleTheme,
-      }),
+      themeButton,
     ]),
 
     el('div', { class: 'sidebar-scroll' }, [
@@ -120,22 +139,8 @@ export const createSidebar = ({ onSelectRoom, onBrowse, onCreateRoom, onNewDm, o
         sectionHeader(
           'Rooms',
           el('span', { class: 'sidebar-actions' }, [
-            el('button', {
-              class: 'icon-button',
-              type: 'button',
-              title: 'Browse rooms',
-              'aria-label': 'Browse public rooms',
-              text: '🔍',
-              onClick: onBrowse,
-            }),
-            el('button', {
-              class: 'icon-button',
-              type: 'button',
-              title: 'Create a room',
-              'aria-label': 'Create a room',
-              text: '+',
-              onClick: onCreateRoom,
-            }),
+            iconButton('search', 'Browse public rooms', onBrowse),
+            iconButton('plus', 'Create a room', onCreateRoom),
           ])
         ),
         roomList,
@@ -146,28 +151,20 @@ export const createSidebar = ({ onSelectRoom, onBrowse, onCreateRoom, onNewDm, o
     el('div', { class: 'sidebar-foot' }, [
       el(
         'button',
-        {
-          class: 'me-card',
-          type: 'button',
-          'aria-label': 'Open your profile',
-          onClick: onProfile,
-        },
+        { class: 'me-card', type: 'button', 'aria-label': 'Open your profile', onClick: onProfile },
         [avatarSlot, el('span', { class: 'me-text' }, [userName, userStatus])]
       ),
       el('div', { class: 'me-actions' }, [
         presenceSelect,
         adminButton,
-        el('button', {
-          class: 'icon-button',
-          type: 'button',
-          title: 'Sign out',
-          'aria-label': 'Sign out',
-          text: '⏻',
-          onClick: onLogout,
-        }),
+        iconButton('log-out', 'Sign out', onLogout),
       ]),
     ]),
   ]);
+
+  const renderTheme = () => {
+    clear(themeButton).appendChild(icon(themeIcon(theme.get())));
+  };
 
   const render = () => {
     const draftRooms = new Set(drafts.roomsWithDrafts());
@@ -181,17 +178,7 @@ export const createSidebar = ({ onSelectRoom, onBrowse, onCreateRoom, onNewDm, o
 
     clear(dmSection);
     dmSection.appendChild(
-      sectionHeader(
-        'Direct messages',
-        el('button', {
-          class: 'icon-button',
-          type: 'button',
-          title: 'Start a direct message',
-          'aria-label': 'Start a direct message',
-          text: '+',
-          onClick: onNewDm,
-        })
-      )
+      sectionHeader('Direct messages', iconButton('plus', 'Start a direct message', onNewDm))
     );
 
     clear(dmList);
@@ -211,7 +198,9 @@ export const createSidebar = ({ onSelectRoom, onBrowse, onCreateRoom, onNewDm, o
       presenceSelect.value = state.user.presence === 'offline' ? 'online' : state.user.presence;
       adminButton.hidden = state.user.role !== 'admin';
     }
+
+    renderTheme();
   };
 
-  return { root, render };
+  return { root, render, renderTheme };
 };

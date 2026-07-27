@@ -1,4 +1,5 @@
 import { avatarFor, clear, el, formatDay, formatTime } from '../dom.js';
+import { icon } from '../icons.js';
 import { renderMarkdown, renderSearchSnippet } from '../markdown.js';
 import { state } from '../state.js';
 
@@ -23,14 +24,11 @@ export const createRightPanel = ({
   }, [
     el('header', { class: 'panel-head' }, [
       title,
-      el('button', {
-        class: 'icon-button',
-        type: 'button',
-        'aria-label': 'Close panel',
-        title: 'Close panel',
-        text: '×',
-        onClick: onClose,
-      }),
+      el(
+        'button',
+        { class: 'icon-button', type: 'button', 'aria-label': 'Close panel', title: 'Close panel', onClick: onClose },
+        [icon('x')]
+      ),
     ]),
     body,
   ]);
@@ -59,26 +57,32 @@ export const createRightPanel = ({
     const actions = el('div', { class: 'member-actions' });
     if (!isMe) {
       actions.appendChild(
-        el('button', {
-          class: 'icon-button',
-          type: 'button',
-          title: `Message ${member.username}`,
-          'aria-label': `Send a direct message to ${member.username}`,
-          text: '✉',
-          onClick: () => onOpenDm(member.id),
-        })
+        el(
+          'button',
+          {
+            class: 'icon-button',
+            type: 'button',
+            title: `Message ${member.username}`,
+            'aria-label': `Send a direct message to ${member.username}`,
+            onClick: () => onOpenDm(member.id),
+          },
+          [icon('message-square', { size: 15 })]
+        )
       );
     }
     if (canManage) {
       actions.appendChild(
-        el('button', {
-          class: 'icon-button',
-          type: 'button',
-          title: 'Moderate',
-          'aria-label': `Moderation options for ${member.username}`,
-          text: '⚙',
-          onClick: (event) => onModerateMember(member, event.currentTarget),
-        })
+        el(
+          'button',
+          {
+            class: 'icon-button',
+            type: 'button',
+            title: 'Moderate',
+            'aria-label': `Moderation options for ${member.username}`,
+            onClick: (event) => onModerateMember(member, event.currentTarget),
+          },
+          [icon('settings', { size: 15 })]
+        )
       );
     }
 

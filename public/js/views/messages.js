@@ -1,6 +1,7 @@
 import { avatarFor, clear, el, formatBytes, formatDay, formatTime } from '../dom.js';
 import { renderMarkdown } from '../markdown.js';
 import { QUICK_REACTIONS } from '../emoji.js';
+import { icon } from '../icons.js';
 import { state } from '../state.js';
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
@@ -47,13 +48,16 @@ export const createMessageList = ({
   const topSentinel = el('div', { class: 'load-more-sentinel' });
   const typingRow = el('div', { class: 'typing-row', 'aria-live': 'polite', hidden: true });
 
-  const jumpButton = el('button', {
-    class: 'jump-latest',
-    type: 'button',
-    hidden: true,
-    text: 'Jump to latest',
-    onClick: () => scrollToBottom({ smooth: true }),
-  });
+  const jumpButton = el(
+    'button',
+    {
+      class: 'jump-latest',
+      type: 'button',
+      hidden: true,
+      onClick: () => scrollToBottom({ smooth: true }),
+    },
+    [icon('arrow-down', { size: 15 }), el('span', { text: 'Jump to latest' })]
+  );
 
   const scroller = el('div', { class: 'message-scroll' }, [topSentinel, list, typingRow]);
   const root = el('div', { class: 'message-pane' }, [scroller, jumpButton]);
@@ -95,14 +99,17 @@ export const createMessageList = ({
 
     if (bar.childNodes.length > 0) {
       bar.appendChild(
-        el('button', {
-          class: 'reaction reaction-add',
-          type: 'button',
-          'aria-label': 'Add a reaction',
-          title: 'Add a reaction',
-          text: '+',
-          onClick: (event) => onPickReaction(message.id, event.currentTarget),
-        })
+        el(
+          'button',
+          {
+            class: 'reaction reaction-add',
+            type: 'button',
+            'aria-label': 'Add a reaction',
+            title: 'Add a reaction',
+            onClick: (event) => onPickReaction(message.id, event.currentTarget),
+          },
+          [icon('smile', { size: 15 })]
+        )
       );
     }
     return bar;
@@ -129,11 +136,12 @@ export const createMessageList = ({
       rel: 'noopener noreferrer',
       download: attachment.name,
     }, [
-      el('span', { class: 'attachment-icon', 'aria-hidden': 'true', text: '📎' }),
+      el('span', { class: 'attachment-icon' }, [icon('file', { size: 18 })]),
       el('span', { class: 'attachment-meta' }, [
         el('span', { class: 'attachment-name', text: attachment.name }),
         el('span', { class: 'attachment-size', text: formatBytes(attachment.size) }),
       ]),
+      el('span', { class: 'attachment-download' }, [icon('download', { size: 16 })]),
     ]);
   };
 
@@ -172,6 +180,7 @@ export const createMessageList = ({
       'aria-label': `Replying to ${message.parent.author}. Open thread.`,
       onClick: () => onOpenThread(message.parent.id),
     }, [
+      icon('corner-down-right', { size: 13 }),
       el('span', { class: 'reply-quote-author', text: message.parent.author }),
       el('span', { class: 'reply-quote-text', text: message.parent.excerpt }),
     ]);
@@ -185,19 +194,23 @@ export const createMessageList = ({
 
     const actions = el('div', { class: 'message-actions', role: 'group', 'aria-label': 'Message actions' });
 
-    const add = (label, glyph, handler, extraClass = '') =>
+    const add = (label, iconName, handler, extraClass = '') =>
       actions.appendChild(
-        el('button', {
-          class: `icon-button message-action ${extraClass}`,
-          type: 'button',
-          title: label,
-          'aria-label': label,
-          text: glyph,
-          onClick: handler,
-        })
+        el(
+          'button',
+          {
+            class: `icon-button message-action${extraClass ? ` ${extraClass}` : ''}`,
+            type: 'button',
+            title: label,
+            'aria-label': label,
+            onClick: handler,
+          },
+          [icon(iconName, { size: 15 })]
+        )
       );
 
     if (!message.isDeleted) {
+      // These stay as emoji: they are the reaction being applied, not chrome.
       for (const emoji of QUICK_REACTIONS.slice(0, 3)) {
         actions.appendChild(
           el('button', {
@@ -210,12 +223,12 @@ export const createMessageList = ({
           })
         );
       }
-      add('Add a reaction', '☺', (event) => onPickReaction(message.id, event.currentTarget));
-      add('Reply in thread', '↩', () => onReply(message));
+      add('Add a reaction', 'smile', (event) => onPickReaction(message.id, event.currentTarget));
+      add('Reply in thread', 'reply', () => onReply(message));
     }
-    if (canEdit) add('Edit message', '✎', () => onEdit(message));
-    if (canPin) add(message.pinnedAt ? 'Unpin message' : 'Pin message', '📌', () => onTogglePin(message));
-    if (canDelete) add('Delete message', '🗑', () => onDelete(message), 'is-danger');
+    if (canEdit) add('Edit message', 'pencil', () => onEdit(message));
+    if (canPin) add(message.pinnedAt ? 'Unpin message' : 'Pin message', 'pin', () => onTogglePin(message));
+    if (canDelete) add('Delete message', 'trash', () => onDelete(message), 'is-danger');
 
     return actions;
   };
@@ -285,7 +298,9 @@ export const createMessageList = ({
         ? el('span', { class: 'message-time-hover', text: formatTime(message.createdAt) })
         : message.kind === 'user'
           ? avatarFor(message.author, { size: 'md' })
-          : el('span', { class: 'avatar avatar-md avatar-bot', 'aria-hidden': 'true', text: message.kind === 'bot' ? '🤖' : 'ⓘ' }),
+          : el('span', { class: 'avatar avatar-md avatar-bot' }, [
+              icon(message.kind === 'bot' ? 'bot' : 'info', { size: 19 }),
+            ]),
     ]);
 
     const header = grouped
@@ -299,7 +314,9 @@ export const createMessageList = ({
             datetime: message.createdAt,
             text: formatTime(message.createdAt),
           }),
-          message.pinnedAt ? el('span', { class: 'tag tag-pin', text: '📌 pinned' }) : null,
+          message.pinnedAt
+            ? el('span', { class: 'tag tag-pin' }, [icon('pin', { size: 11 }), el('span', { text: 'pinned' })])
+            : null,
         ]);
 
     const article = el('article', {
