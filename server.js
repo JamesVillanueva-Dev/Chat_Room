@@ -1,133 +1,104 @@
-const express = require('express');
-const { execFile } = require('child_process');
+'use strict';
+
 const http = require('http');
-const path = require('path');
-const { promisify } = require('util');
-const { Server } = require('socket.io');
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-const execFileAsync = promisify(execFile);
-const rpsScript = path.join(__dirname, 'public', 'RPS.py');
-const rpsSessions = new Map();
+const config = require('./src/config');
+const db = require('./src/db');
+const logger = require('./src/logger');
+const users = require('./src/db/repositories/users');
+const { attachRealtime } = require('./src/realtime');
+const { createApp } = require('./src/http/app');
+const { sessionStore } = require('./src/auth/session');
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-const createPayload = (id, username, text) => ({
-  id,
-  text,
-  username,
-  time: new Date().toLocaleTimeString(),
-});
-
-const getRpsSession = (socketId) => {
-  if (!rpsSessions.has(socketId)) {
-    rpsSessions.set(socketId, { player: 0, bot: 0, active: false });
-  }
-
-  return rpsSessions.get(socketId);
+/**
+ * Builds the HTTP server and its realtime layer without listening, so tests can
+ * drive the same wiring the real process uses.
+ */
+const createServer = () => {
+  const app = createApp();
+  const httpServer = http.createServer(app);
+  const realtime = attachRealtime(httpServer);
+  return { app, httpServer, realtime };
 };
 
-const parseCommand = (text) => {
-  const match = text.trim().match(/^\/(\w+)(?:\s+(.+))?$/i);
-  if (!match) return null;
+const start = () => {
+  // Presence is per-process state; anyone marked online belongs to a run that
+  // is already over.
+  const stale = users.markAllOffline();
+  if (stale > 0) logger.debug('cleared stale presence', { count: stale });
 
-  return {
-    name: match[1].toLowerCase(),
-    argument: (match[2] || '').trim().toLowerCase(),
+  const { app, httpServer, realtime } = createServer();
+
+  httpServer.listen(config.server.port, config.server.host, () => {
+    logger.info('chat server listening', {
+      url: `http://localhost:${config.server.port}`,
+      host: config.server.host,
+      env: config.env,
+      driver: db.name,
+    });
+  });
+
+  httpServer.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      logger.error(`Port ${config.server.port} is already in use. Set PORT to something else.`);
+      process.exit(1);
+    }
+    throw error;
+  });
+
+  let shuttingDown = false;
+
+  const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info('shutting down', { signal });
+
+    // Anything still running past the grace period is not going to finish.
+    const forceExit = setTimeout(() => {
+      logger.warn('shutdown timed out, exiting now');
+      process.exit(1);
+    }, config.server.shutdownGraceMs);
+    forceExit.unref();
+
+    try {
+      realtime.io.emit('server:shutdown', { message: 'The server is restarting.' });
+      realtime.detach();
+
+      await new Promise((resolve) => realtime.io.close(resolve));
+      await new Promise((resolve) => httpServer.close(resolve));
+
+      users.markAllOffline();
+      sessionStore.close();
+      db.close();
+
+      logger.info('shutdown complete');
+      clearTimeout(forceExit);
+      process.exit(0);
+    } catch (error) {
+      logger.error('shutdown failed', { error });
+      process.exit(1);
+    }
   };
-};
 
-const runRpsRound = async (choice) => {
-  const pythonCommand = process.env.PYTHON || 'python';
-  const { stdout } = await execFileAsync(
-    pythonCommand,
-    [rpsScript, '--play', choice],
-    { timeout: 5000, windowsHide: true }
-  );
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-  return JSON.parse(stdout);
-};
-
-const sendRpsBotMessage = (text) => {
-  io.emit('chat message', createPayload('rps-bot', 'RPS Bot', text));
-};
-
-const handlePlayCommand = async (socket, username, commandText) => {
-  if (!commandText) {
-    sendRpsBotMessage(`Hey ${username}, play with /play rock, /play paper, or /play scissors.`);
-    return;
-  }
-
-  const session = getRpsSession(socket.id);
-  if (commandText === 'reset') {
-    session.player = 0;
-    session.bot = 0;
-    session.active = true;
-    sendRpsBotMessage(`${username}'s RPS score is reset. Play again with /play rock, /play paper, or /play scissors.`);
-    return;
-  }
-
-  try {
-    const round = await runRpsRound(commandText);
-    session.active = true;
-
-    if (round.result === 'You win!') {
-      session.player += 1;
-    } else if (round.result === 'You lose!') {
-      session.bot += 1;
-    }
-
-    sendRpsBotMessage(
-      `${username} chose ${round.playerChoiceName}. I chose ${round.cpuChoiceName}. ${round.result}\n` +
-      `Score -> ${username}: ${session.player} RPS Bot: ${session.bot}`
-    );
-  } catch (error) {
-    console.error('RPS bot error:', error);
-    sendRpsBotMessage(`I did not catch that move, ${username}. Try /play rock, /play paper, or /play scissors.`);
-  }
-};
-
-const handleExitCommand = (socket, username) => {
-  const session = getRpsSession(socket.id);
-  session.player = 0;
-  session.bot = 0;
-  session.active = false;
-  sendRpsBotMessage(`${username} stopped the RPS bot. Type /play rock, /play paper, or /play scissors to start again.`);
-};
-
-io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
-
-  socket.on('chat message', async (message) => {
-    const incomingMessage = message || {};
-    const text = String(incomingMessage.text || '').trim();
-    if (!text) return;
-
-    const username = String(incomingMessage.username || 'Guest').trim() || 'Guest';
-    const command = parseCommand(text);
-    if (command?.name === 'play') {
-      await handlePlayCommand(socket, username, command.argument);
-      return;
-    }
-
-    if (command?.name === 'exit') {
-      handleExitCommand(socket, username);
-      return;
-    }
-
-    const payload = createPayload(socket.id, username, text);
-    io.emit('chat message', payload);
+  process.on('unhandledRejection', (reason) => {
+    logger.error('unhandled promise rejection', {
+      error: reason instanceof Error ? reason : new Error(String(reason)),
+    });
   });
 
-  socket.on('disconnect', () => {
-    rpsSessions.delete(socket.id);
-    console.log('A user disconnected:', socket.id);
+  process.on('uncaughtException', (error) => {
+    logger.error('uncaught exception', { error });
+    shutdown('uncaughtException');
   });
-});
 
-const port = process.env.PORT || 3000;
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Chat server is running on http://localhost:${port}`);
-});
+  return { app, httpServer, realtime, shutdown };
+};
+
+if (require.main === module) {
+  start();
+}
+
+module.exports = { createServer, start };

@@ -1,176 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chat Room</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <div class="chat-container">
-    <div class="header">
-      <div>
-        <h1>Chat Room</h1>
-        <p>Open this page from multiple devices or browser tabs on your local network.</p>
-      </div>
-      <div>
-        <label>
-          Name
-          <input id="username" class="username" type="text" placeholder="Your name" maxlength="20" />
-        </label>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="A self-hosted chat room with rooms, direct messages, threads and a bot." />
+    <meta name="color-scheme" content="light dark" />
+    <title>Chat Room</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#composer-input">Skip to the message box</a>
+
+    <div id="app" class="app-root">
+      <div class="boot-screen">
+        <span class="boot-logo" aria-hidden="true">💬</span>
+        <p>Loading Chat Room…</p>
       </div>
     </div>
 
-    <div id="messages" class="messages"></div>
+    <noscript>
+      <p class="noscript">Chat Room needs JavaScript enabled to run.</p>
+    </noscript>
 
-    <form id="chat-form" class="form">
-      <div class="input-wrap">
-        <div id="command-menu" class="command-menu" role="listbox" hidden></div>
-        <input id="message-input" type="text" autocomplete="off" placeholder="Type a message..." required />
-      </div>
-      <button type="submit">Send</button>
-    </form>
-  </div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const messages = document.getElementById('messages');
-    const chatForm = document.getElementById('chat-form');
-    const messageInput = document.getElementById('message-input');
-    const usernameInput = document.getElementById('username');
-    const commandMenu = document.getElementById('command-menu');
-    const commands = [
-      {
-        name: '/play',
-        fill: '/play ',
-        hint: 'Play RPS with rock, paper, or scissors',
-      },
-      {
-        name: '/exit',
-        fill: '/exit',
-        hint: 'Stop the RPS bot and clear your score',
-      },
-    ];
-    let selectedCommandIndex = 0;
-    let visibleCommands = [];
-
-    const appendMessage = (data) => {
-      const item = document.createElement('div');
-      item.className = 'message';
-      if (data.id === 'rps-bot') {
-        item.classList.add('bot-message');
-      }
-
-      const username = document.createElement('strong');
-      username.textContent = data.username;
-
-      const time = document.createElement('small');
-      time.textContent = data.time;
-
-      const text = document.createElement('div');
-      text.textContent = data.text;
-
-      item.append(username, time, text);
-      messages.appendChild(item);
-      messages.scrollTop = messages.scrollHeight;
-    };
-
-    const sendMessage = (text) => {
-      if (!text) return;
-      socket.emit('chat message', {
-        username: usernameInput.value.trim() || 'Guest',
-        text,
-      });
-    };
-
-    const hideCommandMenu = () => {
-      commandMenu.hidden = true;
-      commandMenu.replaceChildren();
-      visibleCommands = [];
-      selectedCommandIndex = 0;
-    };
-
-    const chooseCommand = (command) => {
-      messageInput.value = command.fill;
-      hideCommandMenu();
-      messageInput.focus();
-      messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
-    };
-
-    const renderCommandMenu = () => {
-      commandMenu.replaceChildren();
-
-      visibleCommands.forEach((command, index) => {
-        const item = document.createElement('div');
-        item.className = 'command-item';
-        item.setAttribute('role', 'option');
-        item.setAttribute('aria-selected', String(index === selectedCommandIndex));
-
-        const name = document.createElement('strong');
-        name.textContent = command.name;
-
-        const hint = document.createElement('span');
-        hint.textContent = command.hint;
-
-        item.append(name, hint);
-        item.addEventListener('mousedown', (event) => {
-          event.preventDefault();
-          chooseCommand(command);
-        });
-
-        commandMenu.appendChild(item);
-      });
-
-      commandMenu.hidden = visibleCommands.length === 0;
-    };
-
-    const updateCommandMenu = () => {
-      const value = messageInput.value;
-      if (!value.startsWith('/') || value.includes(' ')) {
-        hideCommandMenu();
-        return;
-      }
-
-      const query = value.slice(1).toLowerCase();
-      visibleCommands = commands.filter((command) => command.name.slice(1).startsWith(query));
-      selectedCommandIndex = Math.min(selectedCommandIndex, Math.max(visibleCommands.length - 1, 0));
-      renderCommandMenu();
-    };
-
-    chatForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const text = messageInput.value.trim();
-      sendMessage(text);
-      messageInput.value = '';
-      hideCommandMenu();
-      messageInput.focus();
-    });
-
-    messageInput.addEventListener('input', updateCommandMenu);
-
-    messageInput.addEventListener('keydown', (event) => {
-      if (commandMenu.hidden) return;
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        selectedCommandIndex = (selectedCommandIndex + 1) % visibleCommands.length;
-        renderCommandMenu();
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        selectedCommandIndex = (selectedCommandIndex - 1 + visibleCommands.length) % visibleCommands.length;
-        renderCommandMenu();
-      } else if (event.key === 'Tab') {
-        event.preventDefault();
-        chooseCommand(visibleCommands[selectedCommandIndex]);
-      } else if (event.key === 'Escape') {
-        hideCommandMenu();
-      }
-    });
-
-    socket.on('chat message', (message) => {
-      appendMessage(message);
-    });
-  </script>
-</body>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="/js/app.js"></script>
+  </body>
 </html>

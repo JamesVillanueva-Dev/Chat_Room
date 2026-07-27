@@ -1,13 +1,39 @@
 {
   "name": "chat_room",
-  "version": "1.0.0",
-  "description": "Simple WebSocket chat room with local PC server",
+  "version": "2.0.0",
+  "description": "Self-hosted chat server with rooms, direct messages, threads, search, moderation and a rock paper scissors bot",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
+  "engines": {
+    "node": ">=22.5.0"
   },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --watch --disable-warning=ExperimentalWarning server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:smoke": "vitest run tests/smoke"
+  },
+  "keywords": [
+    "chat",
+    "socket.io",
+    "websocket",
+    "sqlite",
+    "self-hosted"
+  ],
+  "license": "MIT",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
     "express": "^4.18.4",
+    "express-session": "^1.19.0",
+    "multer": "^2.2.0",
     "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.10"
   }
 }

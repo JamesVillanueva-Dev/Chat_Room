@@ -1,7 +1,6 @@
 """
 Author: James Villanueva
 
-This file supports the CLI RPS game :)
 """
 
 import argparse
